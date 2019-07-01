@@ -6,17 +6,26 @@
 <style>
   #char{
     position: relative;
-    top:0px;
-    left: 0px;
+    top:500px;
+    left: 500px;
+    width: 10px;
+    height: 10px;
   }
 </style>
 </head>
-<body>
+<body id="Play">
 
-<img id="char" src="/image/food.png">
+<img id="char" src="/image/Balloon_Heart.png">
 
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
+let header_pages = document.getElementById('char');
+
+let size = 100;
+header_pages.style.width = size + "px";
+header_pages.style.height = size + "px";
+
 window.onload = () => {
   const socket = io();
   const token = getToken();
@@ -60,6 +69,10 @@ window.onload = () => {
   // アニメーション時間を指定
   element.style.transition = '0.5s';
 
+  const Changesize = 50.0;
+
+  const size = getSize(element);
+
   // キャラを移動させる
   switch(keycd){
     case 119:  //W ↑
@@ -74,10 +87,15 @@ window.onload = () => {
     case 100:  //D →
       element.style.transform = `translate(${pos.x+step}px,${pos.y}px)`;
       break;
+    case 32: //SPACE
+    element.style.width = (size.x + Changesize) + "px";
+    element.style.height  = (size.y + Changesize) + "px";
+    break;
     default:
       console.log(keycd);
       break;
   }
+  console.log(keycd);
 }
 
 /**
@@ -91,6 +109,14 @@ function getPosition(element){
     , y: Math.ceil(rect.y - body.y)
   });
 }
+
+function getSize(element)
+{
+  return({x: element.offsetHeight
+         ,y: element.offsetWidth
+       });
+}
+
 
 /**
  * ランダムな文字列を作成
