@@ -4,24 +4,73 @@
 <meta charset="utf8">
 <title>Socket.IO CharMove</title>
 <style>
-  #charselect-list{ border:1px solid gray; padding:10px; }
-  #btn-enter{ width:100px; padding:5px; margin-top:10px; }
-  #chararea{ display:none; }
-  .char{ position:absolute; top:0px; left:0px; }
+/*キャラクターを選ぶ覧*/
+#charselect-list{
+  position:absolute;
+  top:60%;
+  left:50%;
+  border:2px solid pink;
+  padding:10px;
+  transform: translate(-50%,-50%);
+}
+#btn-enter{ width:100px; padding:5px; margin-top:10px; }
+#chararea{ display:none; }
+/*”キャラクターを選んでください”*/
+#chara{
+  position:absolute;
+  top:40%;
+  left:50%;
+  padding:10px;
+  transform: translate(-50%,-50%);
+}
+/*背景*/
+.WallPaper {
+  position:relative;width: :100px;
+}
+.WallPaper span {position:absolute;bottom:200px;right:450px;width:300px;}
+/*タイトル*/
+.WallPaper title-p {
+  position:absolute;
+  top:20%;
+  left:50%;
+  transform: translate(-50%,-50%);
+}
+
+.char
+{
+  position:absolute;
+  top:0%;
+  left:0%;
+  width: 50%;
+}
+/*
+.WallPaper img {width:100%;}
+.submit {position:absolute;bottom:50%;right:50%;width:300px;transform: translate(-50%,-50%);}
+.submit img {display: block;}
+*/
 </style>
 </head>
 <body>
 
 <div id="charselect">
-  <h1>キャラクターを選んでください</h1>
+<div class ="WallPaper">
+  <img src="/image/Wallpaper02.jpg">
+  <title-p><img src="/image/Title.png"></title-p>
+  <h1 id="chara">キャラクターを選んでください</h1>
   <form id="charselect-list">
-    <div><label><input type="radio" name="mychar" value="1">汁なし担々麺</label></div>
-    <div><label><input type="radio" name="mychar" value="2">トムヤムラーメン</label></div>
+    <div><label><input type="radio" name="mychar" value="1">ピンクバルーン</label></div>
+    <div><label><input type="radio" name="mychar" value="2">ブルーバルーン</label></div>
     <div><button type="button" id="btn-enter">決定</button></div>
   </form>
+  </div>
 </div>
-
-<div id="chararea"></div>
+<div id="chararea">
+  <div id="char">
+  <div class ="WallPaper">
+    <img src="/image/Battle.jpg">
+  </div>
+</div>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -30,7 +79,6 @@ window.onload = () => {
   const token  = getToken();
   let mychar = null;
   let myNum = 0;
-  let mGameSet = false ;
 
   //----------------------------------
   // キャラクターセレクト
@@ -96,7 +144,6 @@ window.onload = () => {
       {
         alert("敗北");
       }
-      //console.log(data);
     });
   });
 }
@@ -138,10 +185,13 @@ function BalloonCountUp(token,count, type, transition="0.1s"){
   element.style.transition = transition;
 
   // キャラを移動させる
-  element.style.transform = `translate(${100 + (type-1) * 500}px,${100}px)`;
+  element.style.transform = `translate(${300 + (type-1) * 700}px,${100}px)`;
+
+  if(count >= 300) return;
 
   element.style.width = (count) + "px";
   element.style.height  = (count) + "px";
+  element.style.src = "image/balloon1_break.png";
 }
 
 /**

@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf8">
+<title>Socket.IO CharMove</title>
+<style>
+  /*#char{
+    position: relative;
+    top:500px;
+    left: 500px;
+    width: 10px;
+    height: 10px;
+  }*/
+  #chararea{ display:none; }
+  .char{ position:absolute; top:0px; left:0px; }
+</style>
+</head>
+<body id="Play">
+
+<img id="char" src="/image/Balloon_Heart.png">
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+let header_pages = document.getElementById('char');
+
+let size = 100;
+header_pages.style.width = size + "px";
+header_pages.style.height = size + "px";
+
+window.onload = () => {
+  const socket = io();
+  const token = getToken();
+  let mychar = 1;
+
+  document.querySelector("#chararea").style.display = "block";  // キャラ移動部分を表示
+  //----------------------------------
+  // サーバにイベントを送信
+  //----------------------------------
+  // 自分がログイン
+ socket.emit('login', {token:token, char:mychar});
+ socket.on('logged-in', (data)=>{    // data = { "token1":{pos{...}, type:1}, "token2":{pos{...}, type:4}}
+   for (const key in data) {
+     createNewChar(key, data[key].type, data[key].zindex );  // キャラを出現
+     moveCharInit(key, data[key].pos,data[key].size);                           // 初期位置に移動
+   }
+ });
+ // 他のプレイヤーがログイン
+ socket.on('newPlayer', (data)=>{    // data = {token:data.token, type:data.char, pos:{x:0, y:0}}
+   createNewChar(data.token, data.type, data.zindex);      // キャラを出現
+   moveCharInit(data.token, data.pos,data[key].size);                         // 初期位置に移動
+ });
+ // 他のプレイヤーがログアウト
+ socket.on('logout', (data)=>{    // data = {token:"xxxxx"}
+   removeChar(data.token);
+ });
+  document.querySelector("body").addEventListener("keypress", (e)=>{
+    let keycd = e.keyCode;
+
+    // ToDo: 自分の画面では風船を拡大する
+    //ClickBalloon(keycd);
+
+    // ToDo: サーバに次の情報を送信する。
+    //   - 自分自身を判別するToken
+    //   - どのキーを押したか
+    socket.emit('clickballoon',{token:token, key:keycd});
+  });
+
+  //----------------------------------
+  // サーバからイベントを受信
+  //----------------------------------
+  socket.on('clickballoon', (data)=>{
+    //ToDo: 自分以外のユーザーが操作したならキャラクターを動かす
+      ClickBalloon(data.token,data.size);
+  });
+}
+
+function createNewChar(token, type, zindex=999){
+  const chararea = document.querySelector("#chararea");
+  const id   = `char-${token}`;
+  const html = `<img src="/image/Balloon${type}.png" class="char" id="${id}">`;
+
+  chararea.insertAdjacentHTML("beforeend", html);
+  document.querySelector(`#${id}`).style.zIndex = zindex;
+}
+
+function removeChar(token){
+  console.log(token);
+  let char = document.querySelector(`#char-${token}`);
+  char.parentNode.removeChild(char);                    //自分自身を削除する
+}
+
+function moveCharInit(token, pos){
+  const element = document.querySelector(`#char-${token}`);
+  // キャラを移動させる
+  element.style.transform = `translate(${pos.x}px,${pos.y}px)`;
+
+  element.style.width = (size.x) + "px";
+  element.style.height  = (size.y) + "px";
+}
+
+/**
+ * キャラを移動する関数
+ */
+ function ClickBalloon(token,size){
+  const element = document.querySelector(`#char-${token}`);
+
+  // キャラの現在位置を取得
+  //const pos = getPosition(element);
+
+  // アニメーション時間を指定
+  //element.style.transition = '0.5s';
+
+  const Changesize = 50.0;
+
+  //const size = getSize(element);
+
+  if(keycd === 32){
+    element.style.width = (size.x + Changesize) + "px";
+    element.style.height  = (size.y + Changesize) + "px";
+
+    console.log(keycd);
+  }
+}
+
+/**
+ * 指定オブジェクトの座標を返却する
+ */
+function getPosition(element){
+  let rect = element.getBoundingClientRect();
+  let body = document.querySelector("body").getBoundingClientRect();
+  return({
+      x: Math.ceil(rect.x - body.x)
+    , y: Math.ceil(rect.y - body.y)
+  });
+}
+
+function getSize(element)
+{
+  return({x: element.offsetHeight
+         ,y: element.offsetWidth
+       });
+}
+
+
+/**
+ * ランダムな文字列を作成
+ *
+ * @param  {integer} len 文字列長
+ * @return {string}
+ */
+ function getToken(len=32){
+  const ls = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+
+  for(let i=0; i<len; i++){
+    const idx = Math.floor( Math.random() * ls.length );
+    result += ls[idx];
+  }
+
+  return(result);
+}
+
+</script>
+</body>
+</html>

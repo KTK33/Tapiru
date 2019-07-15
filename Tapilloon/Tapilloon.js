@@ -43,7 +43,7 @@ io.on("connection", (socket)=>{
   //----------------------------
   socket.on("login", (data)=>{
 
-    const count = 5;
+    const count = 1;
 
     // マスターに追加
     CHAR_LIST[data.token] = {
@@ -80,7 +80,7 @@ io.on("connection", (socket)=>{
     // 全ユーザーへ送信
     io.emit("movechar", data);
 
-    if(data.count >= 100)
+    if(data.count >= 300)
     {
       io.emit("gameset", data);
     }
@@ -116,6 +116,8 @@ function moveChar(token, keycd, countUp=5){
 
     // マスター更新
     CHAR_LIST[token].count = c;
+
+    console.log(keycd);
 }
 
 /**
