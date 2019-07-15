@@ -4,13 +4,15 @@
 <meta charset="utf8">
 <title>Socket.IO CharMove</title>
 <style>
-  #char{
+  /*#char{
     position: relative;
     top:500px;
     left: 500px;
     width: 10px;
     height: 10px;
-  }
+  }*/
+  #chararea{ display:none; }
+  .char{ position:absolute; top:0px; left:0px; }
 </style>
 </head>
 <body id="Play">
@@ -29,73 +31,96 @@ header_pages.style.height = size + "px";
 window.onload = () => {
   const socket = io();
   const token = getToken();
+  let mychar = 1;
 
+  document.querySelector("#chararea").style.display = "block";  // キャラ移動部分を表示
   //----------------------------------
   // サーバにイベントを送信
   //----------------------------------
+  // 自分がログイン
+ socket.emit('login', {token:token, char:mychar});
+ socket.on('logged-in', (data)=>{    // data = { "token1":{pos{...}, type:1}, "token2":{pos{...}, type:4}}
+   for (const key in data) {
+     createNewChar(key, data[key].type, data[key].zindex );  // キャラを出現
+     moveCharInit(key, data[key].pos,data[key].size);                           // 初期位置に移動
+   }
+ });
+ // 他のプレイヤーがログイン
+ socket.on('newPlayer', (data)=>{    // data = {token:data.token, type:data.char, pos:{x:0, y:0}}
+   createNewChar(data.token, data.type, data.zindex);      // キャラを出現
+   moveCharInit(data.token, data.pos,data[key].size);                         // 初期位置に移動
+ });
+ // 他のプレイヤーがログアウト
+ socket.on('logout', (data)=>{    // data = {token:"xxxxx"}
+   removeChar(data.token);
+ });
   document.querySelector("body").addEventListener("keypress", (e)=>{
     let keycd = e.keyCode;
 
-    // ToDo: 自分の画面ではキャラを動かす
-    moveChar(keycd);
+    // ToDo: 自分の画面では風船を拡大する
+    //ClickBalloon(keycd);
 
     // ToDo: サーバに次の情報を送信する。
     //   - 自分自身を判別するToken
     //   - どのキーを押したか
-    socket.emit('movechar',{token:token, key:keycd});
+    socket.emit('clickballoon',{token:token, key:keycd});
   });
 
   //----------------------------------
   // サーバからイベントを受信
   //----------------------------------
-  socket.on('movechar', (data)=>{
+  socket.on('clickballoon', (data)=>{
     //ToDo: 自分以外のユーザーが操作したならキャラクターを動かす
-    if(token !== data.token){
-      moveChar(data.key);
-    }
+      ClickBalloon(data.token,data.size);
   });
+}
+
+function createNewChar(token, type, zindex=999){
+  const chararea = document.querySelector("#chararea");
+  const id   = `char-${token}`;
+  const html = `<img src="/image/Balloon${type}.png" class="char" id="${id}">`;
+
+  chararea.insertAdjacentHTML("beforeend", html);
+  document.querySelector(`#${id}`).style.zIndex = zindex;
+}
+
+function removeChar(token){
+  console.log(token);
+  let char = document.querySelector(`#char-${token}`);
+  char.parentNode.removeChild(char);                    //自分自身を削除する
+}
+
+function moveCharInit(token, pos){
+  const element = document.querySelector(`#char-${token}`);
+  // キャラを移動させる
+  element.style.transform = `translate(${pos.x}px,${pos.y}px)`;
+
+  element.style.width = (size.x) + "px";
+  element.style.height  = (size.y) + "px";
 }
 
 /**
  * キャラを移動する関数
  */
- function moveChar(keycd){
-  const element = document.querySelector("#char");
-  const step = 80;
+ function ClickBalloon(token,size){
+  const element = document.querySelector(`#char-${token}`);
 
   // キャラの現在位置を取得
-  const pos = getPosition(element);
+  //const pos = getPosition(element);
 
   // アニメーション時間を指定
-  element.style.transition = '0.5s';
+  //element.style.transition = '0.5s';
 
   const Changesize = 50.0;
 
-  const size = getSize(element);
+  //const size = getSize(element);
 
-  // キャラを移動させる
-  switch(keycd){
-    case 119:  //W ↑
-      element.style.transform = `translate(${pos.x}px,${pos.y-step}px)`;
-      break;
-    case 97:   //A ←
-      element.style.transform = `translate(${pos.x-step}px,${pos.y}px)`;
-      break;
-    case 115:  //S ↓
-      element.style.transform = `translate(${pos.x}px,${pos.y+step}px)`;
-      break;
-    case 100:  //D →
-      element.style.transform = `translate(${pos.x+step}px,${pos.y}px)`;
-      break;
-    case 32: //SPACE
+  if(keycd === 32){
     element.style.width = (size.x + Changesize) + "px";
     element.style.height  = (size.y + Changesize) + "px";
-    break;
-    default:
-      console.log(keycd);
-      break;
+
+    console.log(keycd);
   }
-  console.log(keycd);
 }
 
 /**

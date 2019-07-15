@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf8">
+<title>Socket.IO CharMove</title>
+<style>
+/*キャラクターを選ぶ覧*/
+#charselect-list{
+  position:absolute;
+  top:60%;
+  left:50%;
+  border:2px solid pink;
+  padding:10px;
+  transform: translate(-50%,-50%);
+}
+#btn-enter{ width:100px; padding:5px; margin-top:10px; }
+#chararea{ display:none; }
+/*”キャラクターを選んでください”*/
+#chara{
+  position:absolute;
+  top:40%;
+  left:50%;
+  padding:10px;
+  transform: translate(-50%,-50%);
+}
+/*背景*/
+.WallPaper {
+  position:relative;width: :100px;
+}
+.WallPaper span {position:absolute;bottom:200px;right:450px;width:300px;}
+/*タイトル*/
+.WallPaper title-p {
+  position:absolute;
+  top:20%;
+  left:50%;
+  transform: translate(-50%,-50%);
+}
+
+.char
+{
+  position:absolute;
+  top:0%;
+  left:0%;
+  width: 50%;
+}
+/*
+.WallPaper img {width:100%;}
+.submit {position:absolute;bottom:50%;right:50%;width:300px;transform: translate(-50%,-50%);}
+.submit img {display: block;}
+*/
+</style>
+</head>
+<body>
+
+<div id="charselect">
+<div class ="WallPaper">
+  <img src="/image/Wallpaper02.jpg">
+  <title-p><img src="/image/Title.png"></title-p>
+  <h1 id="chara">キャラクターを選んでください</h1>
+  <form id="charselect-list">
+    <div><label><input type="radio" name="mychar" value="1">ピンクバルーン</label></div>
+    <div><label><input type="radio" name="mychar" value="2">ブルーバルーン</label></div>
+    <div><button type="button" id="btn-enter">決定</button></div>
+  </form>
+  </div>
+</div>
+<div id="chararea">
+  <div id="char">
+  <div class ="WallPaper">
+    <img src="/image/Battle.jpg">
+  </div>
+</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+window.onload = () => {
+  const socket = io();
+  const token  = getToken();
+  let mychar = null;
+  let myNum = 0;
+
+  //----------------------------------
+  // キャラクターセレクト
+  //----------------------------------
+  // ラジオボタン
+  document.querySelectorAll("input[type='radio']").forEach((radio)=>{
+    // クリックされたら、ラジオボタンのvalueを取得
+    radio.addEventListener("click", ()=>{
+      mychar = radio.value;
+    });
+  });
+
+  // 決定ボタン
+  document.querySelector("#btn-enter").addEventListener("click", ()=>{
+    if(mychar === null){
+      alert("キャラクターが選択されていません");
+      return(false);
+    }
+
+    // 表示内容の切り替え
+    document.querySelector("#charselect").style.display = "none";   // キャラ選択部分を非表示
+    document.querySelector("#chararea").style.display   = "block";  // キャラ移動部分を表示
+
+    //----------------------------------
+    // Socket.io イベント処理
+    //----------------------------------
+    // 自分がログイン
+    socket.emit('login', {token:token, char:mychar});
+    socket.on('logged-in', (data)=>{    // data = { "token1":{pos{...}, type:1}, "token2":{pos{...}, type:4}}
+      for (const key in data) {
+        createNewChar(key, data[key].type, data[key].zindex );  // キャラを出現
+        BalloonCountUp(key,data[key].count,data[key].type);
+        myNum = data[key].type;
+        console.log(myNum);
+      }
+    });
+    // 他のプレイヤーがログイン
+    socket.on('newPlayer', (data)=>{    // data = {token:data.token, type:data.char, pos:{x:0, y:0}}
+      createNewChar(data.token, data.type, data.zindex);      // キャラを出現
+      BalloonCountUp(data.token,data.count, data.type);                         // 初期位置に移動
+    });
+    // 他のプレイヤーがログアウト
+    socket.on('logout', (data)=>{    // data = {token:"xxxxx"}
+      removeChar(data.token);
+    });
+
+    // 押下したキーを送信
+    document.querySelector("body").addEventListener("keypress", (e)=>{
+      let keycd = e.keyCode;
+      socket.emit('movechar', {token:token, key:keycd});
+    });
+    // キャラクターを動かす
+    socket.on('movechar', (data)=>{   // data = {token:"xxxxx", key:115, pos:{x:123,y:456}}
+      BalloonCountUp(data.token,data.count);
+    });
+
+    socket.on('gameset',(data)=>{
+      if(data.type === myNum)
+      {
+        alert("勝利");
+      }
+      else
+      {
+        alert("敗北");
+      }
+    });
+  });
+}
+
+
+/**
+ * キャラクターを新規に登場
+ *
+ * @param {string}  token  プレイヤー識別用のToken
+ * @param {integer} type   キャラクター画像(1〜4)
+ * @param {integer} zindex レイヤー深度
+ * @return {void}
+ */
+function createNewChar(token, type, zindex=999){
+  const chararea = document.querySelector("#chararea");
+  const id   = `char-${token}`;
+  const html = `<img src="/image/Balloon${type}.png" class="char" id="${id}">`;
+
+  chararea.insertAdjacentHTML("beforeend", html);
+  document.querySelector(`#${id}`).style.zIndex = zindex;
+}
+
+/**
+ * キャラクターを削除
+ *
+ * @param {string}  token  プレイヤー識別用のToken
+ * @return {void}
+ */
+function removeChar(token){
+  console.log(token);
+  let char = document.querySelector(`#char-${token}`);
+  char.parentNode.removeChild(char);                    //自分自身を削除する
+}
+
+function BalloonCountUp(token,count, type, transition="0.1s"){
+  const element = document.querySelector(`#char-${token}`);
+
+  // アニメーション時間を指定
+  element.style.transition = transition;
+
+  // キャラを移動させる
+  element.style.transform = `translate(${300 + (type-1) * 700}px,${100}px)`;
+
+  if(count >= 300) return;
+
+  element.style.width = (count) + "px";
+  element.style.height  = (count) + "px";
+  element.style.src = "image/balloon1_break.png";
+}
+
+/**
+ * ランダムな文字列を作成
+ *
+ * @param  {integer} len 文字列長
+ * @return {string}
+ */
+ function getToken(len=32){
+  const ls = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+
+  for(let i=0; i<len; i++){
+    const idx = Math.floor( Math.random() * ls.length );
+    result += ls[idx];
+  }
+
+  return(result);
+}
+</script>
+</body>
+</html>
